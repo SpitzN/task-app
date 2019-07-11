@@ -3,6 +3,7 @@ const router = express.Router();
 const User = require("../../models/User");
 const auth = require("../../middleware/auth");
 const multer = require("multer");
+const sharp = require("sharp");
 
 router.post(`/users`, async (req, res) => {
   const user = new User(req.body);
@@ -51,7 +52,6 @@ router.post(`/users/logoutall`, auth, async (req, res) => {
 });
 
 const upload = multer({
-  dest: "avatars/",
   limits: { fileSize: 2000000 },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(jpg|png|jpeg)$/)) {
@@ -65,7 +65,13 @@ router.post(
   `/users/profile/avatar`,
   auth,
   upload.single("avatar"),
-  (req, res) => {
+  async (req, res) => {
+    const buffer = await sharp(req.file.buffer)
+      .resize({ width: 250, height: 250 })
+      .png().toBuffer();
+
+    req.user.avatar = buffer;
+    await req.user.save();
     res.send();
   },
   (error, req, res, next) => {
@@ -78,7 +84,6 @@ router.get(`/users/profile`, auth, async (req, res) => {
 });
 
 router.patch(`/users/profile`, auth, async (req, res) => {
-  const _id = req.user._id;
   const updates = Object.keys(req.body);
   const allowedUpdatesArray = ["name", "email", "password", "age"];
   const isValidOps = updates.every(update =>
@@ -106,6 +111,30 @@ router.delete(`/users/profile`, auth, async (req, res) => {
     res.send(user);
   } catch (error) {
     res.status(500).send();
+  }
+});
+
+router.delete(`/users/profile/avatar`, auth, async (req, res) => {
+  const user = req.user;
+  user.avatar = undefined;
+  try {
+    await user.save();
+    res.send();
+  } catch (error) {
+    res.status(500).send();
+  }
+});
+
+router.get(`/users/:id/avatar`, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+    res.set("Content-Type", "image/png");
+    res.send(user.avatar);
+  } catch (error) {
+    res.status(404).send();
   }
 });
 
