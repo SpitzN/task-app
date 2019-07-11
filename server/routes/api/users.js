@@ -4,11 +4,16 @@ const User = require("../../models/User");
 const auth = require("../../middleware/auth");
 const multer = require("multer");
 const sharp = require("sharp");
+const {
+  sendWelcomeEmail,
+  sendCancelationEmail
+} = require("../../emails/account");
 
 router.post(`/users`, async (req, res) => {
   const user = new User(req.body);
   try {
     await user.save();
+    sendWelcomeEmail(user.email, user.name);
     const token = await user.genAuthToken();
     res.status(201).send({ user, token });
   } catch (error) {
@@ -68,7 +73,8 @@ router.post(
   async (req, res) => {
     const buffer = await sharp(req.file.buffer)
       .resize({ width: 250, height: 250 })
-      .png().toBuffer();
+      .png()
+      .toBuffer();
 
     req.user.avatar = buffer;
     await req.user.save();
@@ -81,6 +87,19 @@ router.post(
 
 router.get(`/users/profile`, auth, async (req, res) => {
   res.send(req.user);
+});
+
+router.get(`/users/:id/avatar`, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user || !user.avatar) {
+      throw new Error();
+    }
+    res.set("Content-Type", "image/png");
+    res.send(user.avatar);
+  } catch (error) {
+    res.status(404).send();
+  }
 });
 
 router.patch(`/users/profile`, auth, async (req, res) => {
@@ -107,7 +126,7 @@ router.delete(`/users/profile`, auth, async (req, res) => {
   try {
     const user = req.user;
     await user.remove();
-
+    sendCancelationEmail(user.email, user.name);
     res.send(user);
   } catch (error) {
     res.status(500).send();
@@ -122,19 +141,6 @@ router.delete(`/users/profile/avatar`, auth, async (req, res) => {
     res.send();
   } catch (error) {
     res.status(500).send();
-  }
-});
-
-router.get(`/users/:id/avatar`, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-    if (!user || !user.avatar) {
-      throw new Error();
-    }
-    res.set("Content-Type", "image/png");
-    res.send(user.avatar);
-  } catch (error) {
-    res.status(404).send();
   }
 });
 

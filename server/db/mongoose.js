@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 
 mongoose.connect(
-  "mongodb://localhost/task-app",
+  process.env.MONGODB_URI,
   { useNewUrlParser: true, useCreateIndex: true, useFindAndModify: false },
   error => {
     console.log(`DB connected`);
