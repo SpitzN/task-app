@@ -14,7 +14,9 @@ const {
 
 beforeEach(configureTestDB);
 
-test(`should create task for user`, async () => {
+/* ----------------------------------------- Create ----------------------------------------- */
+
+test(`should create task for authenticated user`, async () => {
   const response = await request(app)
     .post(`/tasks`)
     .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
@@ -27,7 +29,21 @@ test(`should create task for user`, async () => {
   expect(task.completed).toEqual(false);
 });
 
-test(`should get all tasks for auth user`, async () => {
+test(`Should not create task with invalid description`, async () => {
+  const response = await request(app)
+    .post(`/tasks`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send({
+      description: ``
+    })
+    .expect(400);
+  const task = await Task.findById(response.body._id);
+  expect(task).toBeNull();
+});
+
+/* ----------------------------------------- Read ----------------------------------------- */
+
+test(`should fetch all tasks for authenticated user`, async () => {
   const response = await request(app)
     .get(`/tasks`)
     .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
@@ -36,12 +52,69 @@ test(`should get all tasks for auth user`, async () => {
   expect(response.body.length).toEqual(2);
 });
 
-test(`should not delete other user tasks`, async () => {
+test(`Should fetch authenticated user task by task id`, async () => {
   const response = await request(app)
     .get(`/tasks/${taskOne._id}`)
-    .set(`Authorization`, `Bearer ${userTwo.tokens[0].token}`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send()
+    .expect(200);
+});
+
+test(`Should not fetch user task by id if unauthenticated`, async () => {
+  const response = await request(app)
+    .get(`/tasks/${taskOne._id}`)
+    .send()
+    .expect(401);
+});
+
+test(`Should not fetch other users task by id`, async () => {
+  const response = await request(app)
+    .get(`/tasks/${taskThree._id}`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
     .send()
     .expect(500);
+});
+
+/* ----------------------------------------- Update ----------------------------------------- */
+
+test(`Should not update other users task`, async () => {
+  const response = await request(app)
+    .patch(`/tasks/${taskOne._id}`)
+    .set(`Authorization`, `Bearer ${userTwo.tokens[0].token}`)
+    .send({
+      description: `this task should not be updated`
+    })
+    .expect(404);
+  const task = await Task.findById(taskOne._id);
+  expect(task.description).not.toBe(`this task should not be updated`);
+});
+
+/* ----------------------------------------- Delete ----------------------------------------- */
+test(`Should delete authenticated user task`, async () => {
+  const response = await request(app)
+    .delete(`/tasks/${taskThree._id}`)
+    .set(`Authorization`, `Bearer ${userTwo.tokens[0].token}`)
+    .send()
+    .expect(200);
+  const task = await Task.findById(taskThree._id);
+  expect(task).toBeNull();
+});
+
+test(`Should not delete task if unauthenticated`, async () => {
+  const response = await request(app)
+    .delete(`/tasks/${taskThree._id}`)
+    .send()
+    .expect(401);
+  const task = await Task.findById(taskThree._id);
+  expect(task).not.toBeNull();
+});
+
+test(`should not delete other user tasks`, async () => {
+  const response = await request(app)
+    .delete(`/tasks/${taskOne._id}`)
+    .set(`Authorization`, `Bearer ${userTwo.tokens[0].token}`)
+    .send()
+    .expect(404);
   const task = await Task.findById(taskOne._id);
   expect(task).not.toBeNull();
 });

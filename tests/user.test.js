@@ -26,6 +26,17 @@ test(`should signup a new user`, async () => {
   expect(user.password).not.toBe(`test123`);
 });
 
+test(`Should not signup user with invalid name`, async () => {
+  const response = await request(app)
+    .post(`/users`)
+    .send({
+      name: ``,
+      email: `andy@example.com`,
+      password: `test123`
+    })
+    .expect(400);
+});
+
 test(`should login existing user`, async () => {
   const response = await request(app)
     .post(`/users/login`)
@@ -58,7 +69,7 @@ test(`should not login non-existing user - incorrect email`, async () => {
     .expect(400);
 });
 
-test(`should get user profile using auth`, async () => {
+test(`should get auth user profile`, async () => {
   await request(app)
     .get(`/users/profile`)
     .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
