@@ -75,6 +75,33 @@ test(`Should not fetch other users task by id`, async () => {
     .expect(500);
 });
 
+test(`Should fetch only completed tasks`, async () => {
+  const response = await request(app)
+    .get(`/tasks?completed=true`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send()
+    .expect(200);
+  expect(response.body[0].completed).toEqual(true);
+});
+
+test(`Should fetch only incomplete tasks`, async () => {
+  const response = await request(app)
+    .get(`/tasks?completed=false`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send()
+    .expect(200);
+  expect(response.body[0].completed).toEqual(false);
+});
+
+test(`Should sort tasks by description in a descending order`, async () => {
+  const response = await request(app)
+    .get(`/tasks?sortBy=description:desc`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send()
+    .expect(200);
+  console.log(response.body);
+});
+
 /* ----------------------------------------- Update ----------------------------------------- */
 
 test(`Should not update other users task`, async () => {

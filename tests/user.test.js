@@ -5,6 +5,7 @@ const { userOneId, userOne, configureTestDB } = require("./fixtures/db");
 
 beforeEach(configureTestDB);
 
+/* ----------------------------------------- Create ----------------------------------------- */
 test(`should signup a new user`, async () => {
   const response = await request(app)
     .post(`/users`)
@@ -69,6 +70,18 @@ test(`should not login non-existing user - incorrect email`, async () => {
     .expect(400);
 });
 
+test(`should upload avatar image`, async () => {
+  await request(app)
+    .post(`/users/profile/avatar`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .attach("avatar", "tests/fixtures/profile-pic.jpg")
+    .expect(200);
+
+  const user = await User.findById(userOneId);
+  expect(user.avatar).toEqual(expect.any(Buffer));
+});
+
+/* ----------------------------------------- Read ----------------------------------------- */
 test(`should get auth user profile`, async () => {
   await request(app)
     .get(`/users/profile`)
@@ -84,34 +97,7 @@ test(`should not get profile if not auth user`, async () => {
     .expect(401);
 });
 
-test(`should delete account for auth user`, async () => {
-  await request(app)
-    .delete(`/users/profile`)
-    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
-    .send()
-    .expect(200);
-  const user = await User.findById(userOneId);
-  expect(user).toBeNull();
-});
-
-test(`should not delete account for un-auth user`, async () => {
-  await request(app)
-    .delete(`/users/profile`)
-    .send()
-    .expect(401);
-});
-
-test(`should upload avatar image`, async () => {
-  await request(app)
-    .post(`/users/profile/avatar`)
-    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
-    .attach("avatar", "tests/fixtures/profile-pic.jpg")
-    .expect(200);
-
-  const user = await User.findById(userOneId);
-  expect(user.avatar).toEqual(expect.any(Buffer));
-});
-
+/* ----------------------------------------- Update ----------------------------------------- */
 test(`shuold update valid user fields`, async () => {
   await request(app)
     .patch(`/users/profile`)
@@ -132,4 +118,22 @@ test(`should not update invalid fields`, async () => {
       loaction: `New-York`
     })
     .expect(400);
+});
+
+/* ----------------------------------------- Delete ----------------------------------------- */
+test(`should delete account for auth user`, async () => {
+  await request(app)
+    .delete(`/users/profile`)
+    .set(`Authorization`, `Bearer ${userOne.tokens[0].token}`)
+    .send()
+    .expect(200);
+  const user = await User.findById(userOneId);
+  expect(user).toBeNull();
+});
+
+test(`should not delete account for un-auth user`, async () => {
+  await request(app)
+    .delete(`/users/profile`)
+    .send()
+    .expect(401);
 });
