@@ -9,6 +9,7 @@ const {
   sendCancelationEmail
 } = require("../../emails/account");
 
+/* ----------------------------------------- Create ----------------------------------------- */
 router.post(`/users`, async (req, res) => {
   const user = new User(req.body);
   try {
@@ -85,6 +86,7 @@ router.post(
   }
 );
 
+/* ----------------------------------------- Read ----------------------------------------- */
 router.get(`/users/profile`, auth, async (req, res) => {
   res.send(req.user);
 });
@@ -101,6 +103,8 @@ router.get(`/users/:id/avatar`, async (req, res) => {
     res.status(404).send();
   }
 });
+
+/* ----------------------------------------- Update ----------------------------------------- */
 
 router.patch(`/users/profile`, auth, async (req, res) => {
   const updates = Object.keys(req.body);
@@ -121,6 +125,8 @@ router.patch(`/users/profile`, auth, async (req, res) => {
     res.status(400).send();
   }
 });
+
+/* ----------------------------------------- Delete ----------------------------------------- */
 
 router.delete(`/users/profile`, auth, async (req, res) => {
   try {
